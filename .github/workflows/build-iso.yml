@@ -10,7 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL || true
+          df -h
 
       - name: Install live-build and dependencies
         run: |
@@ -24,6 +29,14 @@ jobs:
         run: |
           chmod +x build-debian-kde.sh
           sudo ./build-debian-kde.sh
+
+      - name: Dump build logs on failure
+        if: failure()
+        run: |
+          echo "===== lb build logs ====="
+          sudo cat build/build.log 2>/dev/null || true
+          echo "===== bootstrap/chroot logs ====="
+          sudo find build -maxdepth 2 -name "*.log" -exec echo "--- {} ---" \; -exec cat {} \; 2>/dev/null || true
 
       - name: Show result
         run: ls -lh *.iso
