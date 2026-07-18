@@ -14,6 +14,7 @@
 #
 set -e
 set -u
+set -o pipefail
 
 # === Конфигурация дистрибутива ===
 DISTRO_NAME="MyOS"
@@ -54,24 +55,18 @@ lb config \
 # === 2. Пакеты: база + KDE Plasma + установщик ===
 mkdir -p config/package-lists
 cat > config/package-lists/desktop.list.chroot <<'PKG'
-# Базовая система
 linux-image-amd64
 live-boot
 live-config
-systemd
+live-config-systemd
+systemd-sysv
 sudo
 network-manager
-firmware-linux-free
-firmware-linux-nonfree
-firmware-realtek
-firmware-iwlwifi
-
-# Графика и Xorg (минимальный набор драйверов — меньше вес)
+firmware-linux
+firmware-misc-nonfree
 xserver-xorg
 xserver-xorg-video-all
 xinit
-
-# KDE Plasma (базовый, без тяжёлых опциональных модулей)
 kde-plasma-desktop
 plasma-nm
 plasma-pa
@@ -81,35 +76,19 @@ kate
 ark
 spectacle
 breeze-gtk-theme
-# Лёгкий DM вместо тяжёлого
 sddm
-
-# Утилиты — лёгкие замены для слабых ПК
 firefox-esr
-# Вместо полного LibreOffice — только ядро + писатель/таблицы/презентации
 libreoffice-writer
 libreoffice-calc
 libreoffice-impress
-# Печать (минимум)
 cups
-printer-driver-all
 gparted
 fonts-dejavu
 fonts-noto
-# Для генерации логотипов брендинга при сборке
 imagemagick
-# Экран загрузки (splash)
 plymouth
 plymouth-themes
-
-# === Оптимизация для слабых ПК ===
-# Лёгкий файловый менеджер-альтернатива и терминал при необходимости
-# (pcmanfm-qt не ставим, чтобы не тянуть LXQt; Dolphin достаточно лёгкий)
-# Аудио-сервер без Pulse (легче): используем pipewire только если есть,
-# иначе оставляем базовый ALSA
 alsa-utils
-
-# Установщик на целевой диск
 calamares
 calamares-settings-debian
 PKG
@@ -547,7 +526,7 @@ CTX
 
 # === 4. Сборка ===
 echo "==> lb build (это займёт значительное время, ~10-30 мин)"
-lb build
+lb build 2>&1 | tee build.log
 
 # Переименовываем итоговый ISO
 if [ -f "live-image-${ARCH}.hybrid.iso" ]; then
